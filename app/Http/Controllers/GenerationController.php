@@ -19,7 +19,8 @@ use Inertia\Response;
 
 final class GenerationController extends Controller
 {
-    private const int HISTORY_SIZE = 50;
+    // Divides evenly into the history grid's 1, 2 and 3 columns.
+    private const int PER_PAGE = 24;
 
     public function index(Request $request): Response
     {
@@ -27,9 +28,8 @@ final class GenerationController extends Controller
         $user = $request->user();
 
         return Inertia::render('generations/Index', [
-            'generations' => GenerationResource::collection(
-                $user->generations()->latest()->limit(self::HISTORY_SIZE)->get(),
-            )->resolve(),
+            // Laravel's paginator shape: { data, links, meta }.
+            'generations' => GenerationResource::collection($user->generations()->latest()->paginate(self::PER_PAGE)),
             // The form's options and limits come from the same enums and rules that validate it.
             'sizes' => array_column(ImageSize::cases(), 'value'),
             'qualities' => array_column(ImageQuality::cases(), 'value'),

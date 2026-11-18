@@ -44,11 +44,30 @@ class StudioTest extends TestCase
             ->get(route('generations.index'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('generations/Index')
-                ->has('generations', 1, fn (Assert $generation) => $generation
+                ->has('generations.data', 1, fn (Assert $generation) => $generation
                     ->where('status', 'pending')
                     ->where('estimated_charge', '0.402450000')
                     ->missing('provider_cost')
                     ->etc()));
+    }
+
+    public function test_the_history_is_paginated_newest_first(): void
+    {
+        $user = User::factory()->create();
+        $oldest = Generation::factory()->for($user)->create(['created_at' => now()->subDay()]);
+        Generation::factory()->for($user)->count(24)->create();
+
+        $this->actingAs($user)
+            ->get(route('generations.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('generations.data', 24)
+                ->where('generations.meta.last_page', 2));
+
+        $this->actingAs($user)
+            ->get(route('generations.index', ['page' => 2]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('generations.data', 1)
+                ->where('generations.data.0.id', $oldest->id));
     }
 
     public function test_submitting_records_the_estimate_and_queues_the_generation(): void

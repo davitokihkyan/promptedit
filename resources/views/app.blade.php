@@ -4,11 +4,16 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Apply the system's dark mode before the page paints, so it doesn't flash white --}}
+        {{-- Apply the saved theme (see resources/js/lib/theme.ts) before the page paints, so it doesn't flash --}}
         <script>
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.classList.add('dark');
-            }
+            (function () {
+                const appearance = localStorage.getItem('appearance');
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                if (appearance === 'dark' || (appearance !== 'light' && systemDark)) {
+                    document.documentElement.classList.add('dark');
+                }
+            })();
         </script>
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}

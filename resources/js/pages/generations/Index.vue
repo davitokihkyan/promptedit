@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { Head, usePoll } from '@inertiajs/vue3';
+import { Head, Link, usePoll } from '@inertiajs/vue3';
 import { ImagePlus } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import GenerationCard from '@/components/generations/GenerationCard.vue';
 import GenerationForm from '@/components/generations/GenerationForm.vue';
 import Heading from '@/components/Heading.vue';
+import { Button } from '@/components/ui/button';
 import { isFinished } from '@/lib/generation';
 import generationRoutes from '@/routes/generations';
-import type { Generation, ImageQuality, ImageSize } from '@/types';
+import type { Generation, ImageQuality, ImageSize, Paginated } from '@/types';
 
 const props = defineProps<{
-    generations: Generation[];
+    generations: Paginated<Generation>;
     sizes: ImageSize[];
     qualities: ImageQuality[];
     maxPromptLength: number;
@@ -23,7 +24,7 @@ defineOptions({
     },
 });
 
-// Poll only while something is still running; credits change when one settles.
+// Poll only while something on this page is still running; credits change when one settles.
 const { start, stop } = usePoll(
     2000,
     { only: ['generations', 'credits'] },
@@ -31,7 +32,7 @@ const { start, stop } = usePoll(
 );
 
 const hasUnfinished = computed(() =>
-    props.generations.some((generation) => !isFinished(generation.status)),
+    props.generations.data.some((generation) => !isFinished(generation.status)),
 );
 
 watch(hasUnfinished, (unfinished) => (unfinished ? start() : stop()), {
@@ -65,7 +66,7 @@ watch(hasUnfinished, (unfinished) => (unfinished ? start() : stop()), {
             />
 
             <div
-                v-if="generations.length === 0"
+                v-if="generations.data.length === 0"
                 class="flex flex-col items-center gap-2 rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground"
             >
                 <ImagePlus class="size-6" />
@@ -74,11 +75,54 @@ watch(hasUnfinished, (unfinished) => (unfinished ? start() : stop()), {
 
             <div v-else class="grid gap-4 @lg:grid-cols-2 @4xl:grid-cols-3">
                 <GenerationCard
-                    v-for="generation in generations"
+                    v-for="generation in generations.data"
                     :key="generation.id"
                     :generation="generation"
                 />
             </div>
+
+            <nav
+                v-if="generations.meta.last_page > 1"
+                aria-label="Generation pages"
+                class="mt-6 flex items-center justify-between gap-2 text-sm"
+            >
+                <Button
+                    v-if="generations.links.prev"
+                    variant="outline"
+                    size="sm"
+                    as-child
+                >
+                    <Link
+                        :href="generations.links.prev"
+                        :only="['generations']"
+                    >
+                        Newer
+                    </Link>
+                </Button>
+                <Button v-else variant="outline" size="sm" disabled
+                    >Newer</Button
+                >
+                <span class="text-muted-foreground">
+                    Page {{ generations.meta.current_page }} of
+                    {{ generations.meta.last_page }}
+                </span>
+                <Button
+                    v-if="generations.links.next"
+                    variant="outline"
+                    size="sm"
+                    as-child
+                >
+                    <Link
+                        :href="generations.links.next"
+                        :only="['generations']"
+                    >
+                        Older
+                    </Link>
+                </Button>
+                <Button v-else variant="outline" size="sm" disabled
+                    >Older</Button
+                >
+            </nav>
         </section>
     </div>
 </template>

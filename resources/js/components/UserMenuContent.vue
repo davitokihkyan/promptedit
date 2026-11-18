@@ -6,6 +6,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import ThemeOptions from '@/components/ThemeOptions.vue';
 import UserInfo from '@/components/UserInfo.vue';
 import { logout } from '@/routes';
 import type { User } from '@/types';
@@ -27,6 +28,8 @@ defineProps<Props>();
             <UserInfo :user="user" :show-email="true" />
         </div>
     </DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    <ThemeOptions />
     <DropdownMenuSeparator />
     <DropdownMenuItem :as-child="true">
         <Link

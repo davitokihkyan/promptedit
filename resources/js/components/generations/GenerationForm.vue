@@ -70,6 +70,11 @@ const canAfford = computed(
         toNanos(estimate.value.maximum) <= toNanos(balance.value),
 );
 
+// One rule for the Generate button and the Cmd/Ctrl+Enter shortcut.
+const canSubmit = computed(
+    () => form.prompt.trim() !== '' && canAfford.value && !form.processing,
+);
+
 function filledReferences(): string[] {
     return form.reference_images
         .map((url) => url.trim())
@@ -90,8 +95,7 @@ function removeReference(index: number): void {
 }
 
 function submit(): void {
-    // Cmd/Ctrl+Enter lands here too, so repeat the button's guards.
-    if (form.processing || !canAfford.value) {
+    if (!canSubmit.value) {
         return;
     }
 
@@ -219,11 +223,7 @@ function submit(): void {
         <InputError :message="errorFor('credits')" />
         <InputError :message="errorFor('pixelforge')" />
 
-        <Button
-            type="submit"
-            class="w-full"
-            :disabled="form.processing || !canAfford"
-        >
+        <Button type="submit" class="w-full" :disabled="!canSubmit">
             <Spinner v-if="form.processing" />
             Generate
         </Button>

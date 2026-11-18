@@ -15,8 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
         then: fn () => Route::group([], __DIR__.'/../routes/webhooks.php'),
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Only proxies on private networks (local nginx, Laravel Cloud's load balancer) may set X-Forwarded-*.
-        $middleware->trustProxies(at: 'PRIVATE_SUBNETS');
         $middleware->encryptCookies(except: ['sidebar_state']);
 
         $middleware->web(append: [
