@@ -2,10 +2,8 @@
 
 namespace Tests\Feature\Reports;
 
-use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Models\User;
-use App\Money\Usd;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -31,10 +29,10 @@ class SpendReportTest extends TestCase
     {
         $ada = User::factory()->create(['name' => 'Ada']);
         $alan = User::factory()->create(['name' => 'Alan']);
-        $this->succeeded($ada, '2026-11-17 09:00:00', '0.049297500');
-        $this->succeeded($ada, '2026-11-17 23:59:59', '0.100000000');
-        $this->succeeded($alan, '2026-11-16 08:00:00', '0.305510000');
-        Generation::factory()->for($alan)->create(['status' => GenerationStatus::Failed, 'charge' => Usd::zero(), 'provider_cost' => Usd::zero(), 'completed_at' => '2026-11-16 09:00:00']);
+        Generation::factory()->for($ada)->succeeded('0.049297500')->create(['completed_at' => '2026-11-17 09:00:00']);
+        Generation::factory()->for($ada)->succeeded('0.100000000')->create(['completed_at' => '2026-11-17 23:59:59']);
+        Generation::factory()->for($alan)->succeeded('0.305510000')->create(['completed_at' => '2026-11-16 08:00:00']);
+        Generation::factory()->for($alan)->failed()->create(['completed_at' => '2026-11-16 09:00:00']);
         $this->fakeUsage(['2026-11-16' => [1, '0.305510000'], '2026-11-17' => [2, '0.149297500']]);
 
         $this->actingAs(User::factory()->admin()->create())
@@ -74,18 +72,6 @@ class SpendReportTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())
             ->get(route('admin.spend'))
             ->assertInertia(fn (Assert $page) => $page->where('report.pixelforge_available', false));
-    }
-
-    private function succeeded(User $user, string $completedAt, string $providerCost): void
-    {
-        $cost = Usd::fromDecimal($providerCost);
-
-        Generation::factory()->for($user)->create([
-            'status' => GenerationStatus::Succeeded,
-            'provider_cost' => $cost,
-            'charge' => Usd::ofNanos(intdiv($cost->nanos * 125, 100)),
-            'completed_at' => $completedAt,
-        ]);
     }
 
     /** @param array<string, array{int, string}> $days */

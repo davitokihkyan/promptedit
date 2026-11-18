@@ -11,6 +11,10 @@ use Illuminate\Validation\Rule;
 
 class StoreGenerationRequest extends FormRequest
 {
+    public const int MAX_PROMPT_LENGTH = 4000;
+
+    public const int MAX_REFERENCE_IMAGES = 4;
+
     /**
      * Pixelforge's own limits, so a request it would reject never leaves the app.
      *
@@ -19,10 +23,10 @@ class StoreGenerationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'prompt' => ['required', 'string', 'max:4000'],
+            'prompt' => ['required', 'string', 'max:'.self::MAX_PROMPT_LENGTH],
             'size' => ['required', Rule::enum(ImageSize::class)],
             'quality' => ['required', Rule::enum(ImageQuality::class)],
-            'reference_images' => ['array', 'max:4'],
+            'reference_images' => ['array', 'max:'.self::MAX_REFERENCE_IMAGES],
             'reference_images.*' => ['required', 'string', 'url:http,https', 'max:2048'],
         ];
     }
@@ -31,7 +35,7 @@ class StoreGenerationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reference_images.max' => 'You can add at most 4 reference images.',
+            'reference_images.max' => 'You can add at most '.self::MAX_REFERENCE_IMAGES.' reference images.',
             'reference_images.*.url' => 'Each reference image must be an http(s) URL.',
         ];
     }

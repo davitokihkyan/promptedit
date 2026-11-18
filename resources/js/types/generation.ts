@@ -43,37 +43,9 @@ export type TokenUsage = {
     reasoning_tokens: number;
 };
 
-export type CostEstimate = {
+/** What a generation will charge, before it runs; the server works it out. */
+export type ChargeEstimate = {
     expected: Usd;
     maximum: Usd;
     tokens: { expected: TokenUsage; maximum: TokenUsage };
-};
-
-export type Credits = {
-    balance: Usd;
-    reserved: Usd;
-    packs: number[];
-};
-
-export type Spend = {
-    generations: number;
-    charged: Usd;
-    provider_cost: Usd;
-    profit: Usd;
-};
-
-export type SpendDay = Spend & {
-    date: string;
-    users: (Spend & {
-        id: number | null;
-        name: string;
-        email: string | null;
-    })[];
-    pixelforge: { generations: number; cost: Usd; matches: boolean } | null;
-};
-
-export type SpendReport = {
-    days: SpendDay[];
-    totals: Spend;
-    pixelforge_available: boolean;
 };

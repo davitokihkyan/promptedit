@@ -21,7 +21,7 @@ final class PixelforgeServiceProvider extends ServiceProvider
 
         $this->app->bind(WebhookSignature::class, fn () => new WebhookSignature(
             (string) config('services.pixelforge.webhook_secret'),
-            (int) config('services.pixelforge.webhook_tolerance'),
+            (int) config('services.pixelforge.webhook_tolerance_seconds'),
         ));
     }
 }

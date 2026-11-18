@@ -5,7 +5,7 @@ namespace App\Billing;
 use App\Pixelforge\Data\GenerationParameters;
 use App\Pixelforge\PricingRepository;
 
-final readonly class CostEstimator
+final readonly class ChargeEstimator
 {
     public function __construct(
         private PricingRepository $pricing,
@@ -13,13 +13,13 @@ final readonly class CostEstimator
     ) {}
 
     /** What the user will likely pay, and the most they can pay. */
-    public function estimate(GenerationParameters $parameters): CostEstimate
+    public function estimate(GenerationParameters $parameters): ChargeEstimate
     {
         $catalog = $this->pricing->current();
         $expectedUsage = $catalog->expectedUsage($parameters);
         $maximumUsage = $catalog->maximumUsage($parameters);
 
-        return new CostEstimate(
+        return new ChargeEstimate(
             expectedUsage: $expectedUsage,
             maximumUsage: $maximumUsage,
             expected: $this->markup->apply($catalog->rates->costOf($expectedUsage)),

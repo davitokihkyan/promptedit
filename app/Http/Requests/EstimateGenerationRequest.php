@@ -11,7 +11,7 @@ final class EstimateGenerationRequest extends StoreGenerationRequest
     {
         return [
             ...parent::rules(),
-            'prompt' => ['nullable', 'string', 'max:4000'],
+            'prompt' => ['nullable', 'string', 'max:'.self::MAX_PROMPT_LENGTH],
             'reference_images.*' => ['string'],
         ];
     }

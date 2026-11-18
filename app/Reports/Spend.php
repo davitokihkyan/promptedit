@@ -20,6 +20,18 @@ final readonly class Spend
         return new self(0, Usd::zero(), Usd::zero());
     }
 
+    /** @param iterable<self> $spends */
+    public static function sum(iterable $spends): self
+    {
+        $total = self::zero();
+
+        foreach ($spends as $spend) {
+            $total = $total->plus($spend);
+        }
+
+        return $total;
+    }
+
     public function plus(self $other): self
     {
         return new self(

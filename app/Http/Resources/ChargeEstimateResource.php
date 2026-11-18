@@ -2,14 +2,14 @@
 
 namespace App\Http\Resources;
 
-use App\Billing\CostEstimate;
+use App\Billing\ChargeEstimate;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @property CostEstimate $resource
+ * @property ChargeEstimate $resource
  */
-final class CostEstimateResource extends JsonResource
+final class ChargeEstimateResource extends JsonResource
 {
     public static $wrap = null;
 

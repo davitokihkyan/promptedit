@@ -19,15 +19,7 @@ class HandleInertiaRequests extends Middleware
      */
     protected $rootView = 'app';
 
-    /**
-     * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
-     */
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
-    }
+    public function __construct(private readonly Wallet $wallet) {}
 
     /**
      * Define the props that are shared by default.
@@ -49,7 +41,7 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
-    /** @return array{balance: Usd, reserved: Usd, packs: list<int>}|null */
+    /** @return array{balance: Usd, held: Usd, packs: list<int>}|null */
     private function credits(Request $request): ?array
     {
         $user = $request->user();
@@ -60,7 +52,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'balance' => $user->balance,
-            'reserved' => app(Wallet::class)->reserved($user),
+            'held' => $this->wallet->held($user),
             'packs' => config('billing.credit_packs'),
         ];
     }

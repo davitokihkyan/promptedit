@@ -2,15 +2,13 @@
 
 namespace Tests\Feature\Billing;
 
-use App\Enums\ImageQuality;
-use App\Enums\ImageSize;
+use App\Enums\GenerationStatus;
 use App\Generations\GenerationUpdater;
 use App\Generations\StartGeneration;
 use App\Models\CreditPurchase;
 use App\Models\Generation;
 use App\Models\User;
 use App\Money\Usd;
-use App\Pixelforge\Data\GenerationParameters;
 use App\Pixelforge\Data\RemoteGeneration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -76,12 +74,7 @@ class CreditsTest extends TestCase
         $user = User::factory()->create(['balance' => Usd::fromDecimal('0.45')]);
 
         $this->actingAs($user)
-            ->post(route('generations.store'), [
-                'prompt' => str_repeat('a', 400),
-                'size' => '1536x1024',
-                'quality' => 'high',
-                'reference_images' => ['https://example.com/a.png', 'https://example.com/b.png'],
-            ])
+            ->post(route('generations.store'), Pixelforge::docsExampleRequest())
             ->assertSessionHasErrors('credits');
 
         $this->assertSame(0, Generation::query()->count());
@@ -131,19 +124,14 @@ class CreditsTest extends TestCase
 
         $purchases = (int) $user->creditPurchases()->sum('amount');
         $charges = (int) $user->generations()->sum('charge');
-        $holds = (int) $user->generations()->whereNull('completed_at')->sum('max_charge');
+        $holds = (int) $user->generations()->whereIn('status', GenerationStatus::unfinished())->sum('max_charge');
 
         $this->assertSame($purchases - $charges - $holds, $user->refresh()->balance->nanos);
     }
 
     private function start(User $user): Generation
     {
-        return $this->app->make(StartGeneration::class)->handle($user, new GenerationParameters(
-            prompt: str_repeat('a', 400),
-            size: ImageSize::Landscape,
-            quality: ImageQuality::High,
-            referenceImages: ['https://example.com/a.png', 'https://example.com/b.png'],
-        ));
+        return $this->app->make(StartGeneration::class)->handle($user, Pixelforge::docsExampleParameters());
     }
 
     /** @param array<string, mixed> $remote */

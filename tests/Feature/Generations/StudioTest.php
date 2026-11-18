@@ -46,7 +46,7 @@ class StudioTest extends TestCase
                 ->component('generations/Index')
                 ->has('generations', 1, fn (Assert $generation) => $generation
                     ->where('status', 'pending')
-                    ->where('estimated_charge', '0.405000000')
+                    ->where('estimated_charge', '0.402450000')
                     ->missing('provider_cost')
                     ->etc()));
     }
@@ -57,7 +57,7 @@ class StudioTest extends TestCase
         $user = User::factory()->withCredits(10)->create();
 
         $this->actingAs($user)
-            ->post(route('generations.store'), $this->docsExample())
+            ->post(route('generations.store'), Pixelforge::docsExampleRequest())
             ->assertRedirect(route('generations.index'));
 
         $generation = $user->generations()->sole();
@@ -73,7 +73,7 @@ class StudioTest extends TestCase
         Queue::fake();
 
         $this->actingAs(User::factory()->create())
-            ->post(route('generations.store'), [...$this->docsExample(), ...$overrides])
+            ->post(route('generations.store'), [...Pixelforge::docsExampleRequest(), ...$overrides])
             ->assertSessionHasErrors($field);
 
         Queue::assertNothingPushed();
@@ -95,7 +95,7 @@ class StudioTest extends TestCase
     public function test_the_estimate_shows_the_likely_and_the_highest_price(): void
     {
         $this->actingAs(User::factory()->create())
-            ->postJson(route('generations.estimate'), $this->docsExample())
+            ->postJson(route('generations.estimate'), Pixelforge::docsExampleRequest())
             ->assertOk()
             ->assertJson([
                 'expected' => '0.412562500',
@@ -110,7 +110,7 @@ class StudioTest extends TestCase
         $this->pricingAvailable = false;
 
         $this->actingAs(User::factory()->withCredits(10)->create())
-            ->post(route('generations.store'), $this->docsExample())
+            ->post(route('generations.store'), Pixelforge::docsExampleRequest())
             ->assertSessionHasErrors('pixelforge');
 
         $this->assertSame(0, Generation::query()->count());
@@ -122,16 +122,5 @@ class StudioTest extends TestCase
             ->postJson(route('generations.estimate'), ['prompt' => null, 'size' => '1024x1024', 'quality' => 'low'])
             ->assertOk()
             ->assertJsonPath('tokens.expected.input_text_tokens', 0);
-    }
-
-    /** @return array<string, mixed> */
-    private function docsExample(): array
-    {
-        return [
-            'prompt' => str_repeat('a', 400),
-            'size' => '1536x1024',
-            'quality' => 'high',
-            'reference_images' => ['https://example.com/a.png', 'https://example.com/b.png'],
-        ];
     }
 }

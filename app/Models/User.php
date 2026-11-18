@@ -26,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'balance'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

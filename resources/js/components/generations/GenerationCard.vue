@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import GenerationStatusBadge from '@/components/generations/GenerationStatusBadge.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { qualityLabels, sizeLabels } from '@/lib/generation';
-import { formatUsd } from '@/lib/money';
+import { formatExactUsd, formatUsd } from '@/lib/money';
 import type { Generation, GenerationStatus, ImageSize } from '@/types';
 
 const props = defineProps<{ generation: Generation }>();
@@ -120,7 +120,7 @@ const referenceCount = computed(() => props.generation.reference_images.length);
                 <dd
                     v-else-if="generation.charge !== null"
                     class="text-right font-medium tabular-nums"
-                    :title="`Exactly $${generation.charge}`"
+                    :title="formatExactUsd(generation.charge)"
                 >
                     {{ formatUsd(generation.charge) }}
                 </dd>

@@ -25,18 +25,27 @@ final readonly class SpendReport
     {
         $spend = $this->spendByDayAndUser($from, $to);
         $usage = $this->pixelforgeUsage($from, $to);
+        $billed = $usage ?? [];
         $users = User::query()->whereIn('id', $spend->pluck('user_id')->filter())->get(['id', 'name', 'email'])->keyBy('id');
+        $spendByDate = $spend->groupBy('date');
 
-        $days = $spend->groupBy('date')
-            ->union(collect($usage)->filter(fn (DailyUsage $day) => $day->generations > 0)->map(fn () => collect()))
-            ->sortKeysDesc()
-            ->map(fn (Collection $rows, string $date) => $this->day($date, $rows, $usage[$date] ?? null, $users));
+        // Days we charged for, plus days Pixelforge billed that we have no record of, so a missed charge shows up.
+        // Pixelforge also lists empty days, which are left out.
+        $dates = $spend->pluck('date')
+            ->merge(collect($billed)->filter(fn (DailyUsage $day) => $day->generations > 0)->map(fn (DailyUsage $day) => $day->date)->values())
+            ->unique()
+            ->sortDesc();
 
-        $totals = $spend->reduce(fn (Spend $total, array $row) => $total->plus($row['spend']), Spend::zero());
+        $days = $dates->map(fn (string $date) => $this->day(
+            $date,
+            $spendByDate->get($date, collect()),
+            $billed[$date] ?? null,
+            $users,
+        ));
 
         return [
             'days' => array_values($days->all()),
-            'totals' => $totals->toArray(),
+            'totals' => Spend::sum($spend->pluck('spend'))->toArray(),
             'pixelforge_available' => $usage !== null,
         ];
     }
@@ -81,21 +90,25 @@ final readonly class SpendReport
      */
     private function day(string $date, Collection $rows, ?DailyUsage $usage, Collection $users): array
     {
-        $total = $rows->reduce(fn (Spend $sum, array $row) => $sum->plus($row['spend']), Spend::zero());
+        $total = Spend::sum($rows->pluck('spend'));
 
         return [
             'date' => $date,
             ...$total->toArray(),
-            'users' => $rows->map(fn (array $row) => [
-                'id' => $row['user_id'],
-                'name' => $users->get($row['user_id'])->name ?? 'Deleted user',
-                'email' => $users->get($row['user_id'])?->email,
-                ...$row['spend']->toArray(),
-            ])->sortByDesc(fn (array $user) => $user['charged']->nanos)->values()->all(),
+            'users' => $rows->map(function (array $row) use ($users): array {
+                $user = $users->get($row['user_id']);
+
+                return [
+                    'id' => $row['user_id'],
+                    'name' => $user->name ?? 'Deleted user',
+                    'email' => $user?->email,
+                    ...$row['spend']->toArray(),
+                ];
+            })->sortByDesc(fn (array $user) => $user['charged']->nanos)->values()->all(),
             'pixelforge' => $usage === null ? null : [
                 'generations' => $usage->generations,
                 'cost' => $usage->cost,
-                'matches' => $usage->generations === $total->generations && $usage->cost->nanos === $total->providerCost->nanos,
+                'matches' => $usage->generations === $total->generations && $usage->cost->equals($total->providerCost),
             ],
         ];
     }

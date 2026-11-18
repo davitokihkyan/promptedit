@@ -6,7 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A Pixelforge webhook we've already processed, kept for deduplication and audit.
+ * A Pixelforge webhook we've received. Its id is the primary key, so a repeated delivery can't be recorded twice.
  *
  * @property string $id
  * @property string $type

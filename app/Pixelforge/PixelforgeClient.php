@@ -11,12 +11,13 @@ use Illuminate\Http\Client\ConnectionException;
 interface PixelforgeClient
 {
     /**
-     * @param  array<string, string>  $metadata
+     * Our generation id is sent as the Idempotency-Key, so retries are safe, and as metadata.generation_id,
+     * so webhooks find the row even before this request returns.
      *
      * @throws PixelforgeException when Pixelforge rejects the request
      * @throws ConnectionException when we can't tell whether it was created
      */
-    public function createGeneration(GenerationParameters $parameters, string $idempotencyKey, array $metadata): RemoteGeneration;
+    public function createGeneration(GenerationParameters $parameters, string $generationId): RemoteGeneration;
 
     /** @throws PixelforgeException|ConnectionException */
     public function getGeneration(string $id): RemoteGeneration;

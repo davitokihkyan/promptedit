@@ -4,12 +4,12 @@ import { Wallet } from '@lucide/vue';
 import { computed } from 'vue';
 import BuyCreditsDialog from '@/components/credits/BuyCreditsDialog.vue';
 import { Button } from '@/components/ui/button';
-import { formatUsd, toNanos } from '@/lib/money';
+import { formatExactUsd, formatUsd, toNanos } from '@/lib/money';
 
 const page = usePage();
 const credits = computed(() => page.props.credits);
-const hasReserved = computed(
-    () => credits.value !== null && toNanos(credits.value.reserved) > 0n,
+const hasHeld = computed(
+    () => credits.value !== null && toNanos(credits.value.held) > 0n,
 );
 </script>
 
@@ -23,12 +23,12 @@ const hasReserved = computed(
         </div>
         <p
             class="text-lg font-semibold tabular-nums"
-            :title="`Exactly $${credits.balance}`"
+            :title="formatExactUsd(credits.balance)"
         >
             {{ formatUsd(credits.balance) }}
         </p>
-        <p v-if="hasReserved" class="text-xs text-muted-foreground">
-            {{ formatUsd(credits.reserved) }} reserved for running generations
+        <p v-if="hasHeld" class="text-xs text-muted-foreground">
+            {{ formatUsd(credits.held) }} held for running generations
         </p>
         <BuyCreditsDialog>
             <Button size="sm" class="w-full">Buy credits</Button>

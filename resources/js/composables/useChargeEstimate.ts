@@ -3,12 +3,14 @@ import { useDebounceFn } from '@vueuse/core';
 import type { Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
 import GenerationEstimateController from '@/actions/App/Http/Controllers/GenerationEstimateController';
-import type { CostEstimate, GenerationRequest } from '@/types';
+import type { ChargeEstimate, GenerationRequest } from '@/types';
 
 /** Asks the server for a price whenever the request changes; the server owns the pricing rules. */
-export function useCostEstimate(request: Ref<GenerationRequest>) {
-    const http = useHttp<GenerationRequest, CostEstimate>({ ...request.value });
-    const estimate = ref<CostEstimate | null>(null);
+export function useChargeEstimate(request: Ref<GenerationRequest>) {
+    const http = useHttp<GenerationRequest, ChargeEstimate>({
+        ...request.value,
+    });
+    const estimate = ref<ChargeEstimate | null>(null);
     const unavailable = ref(false);
 
     const refresh = useDebounceFn(() => {
@@ -21,7 +23,7 @@ export function useCostEstimate(request: Ref<GenerationRequest>) {
                 unavailable.value = false;
             },
             onError: () => {
-                // Invalid input (e.g. a prompt over 4,000 characters) has no price.
+                // Invalid input (e.g. a prompt that's too long) has no price.
                 estimate.value = null;
             },
             onHttpException: () => {
@@ -30,7 +32,9 @@ export function useCostEstimate(request: Ref<GenerationRequest>) {
             onNetworkError: () => {
                 unavailable.value = true;
             },
-        }).catch(() => {});
+        }).catch(() => {
+            // Cancelled and failed requests reject; their outcome is handled in the callbacks above.
+        });
     }, 250);
 
     watch(request, refresh, { deep: true, immediate: true });

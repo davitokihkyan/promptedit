@@ -9,7 +9,7 @@ use App\Money\Usd;
  */
 final readonly class TokenRates
 {
-    private const int TOKENS_PER_RATE = 1_000_000;
+    private const int TOKENS_PER_RATE_UNIT = 1_000_000;
 
     public function __construct(
         public Usd $inputText,
@@ -32,12 +32,13 @@ final readonly class TokenRates
     /** Exact in integers: a rate with up to 3 decimals costs a whole number of nanodollars per token. */
     public function costOf(TokenUsage $usage): Usd
     {
-        $nanosPerMillionTokens = $usage->inputText * $this->inputText->nanos
+        // Rates are per 1M tokens, so sum first and divide once at the end.
+        $total = $usage->inputText * $this->inputText->nanos
             + $usage->inputImage * $this->inputImage->nanos
             + $usage->output * $this->output->nanos
             + $usage->reasoning * $this->reasoning->nanos;
 
-        return Usd::ofNanos(intdiv($nanosPerMillionTokens, self::TOKENS_PER_RATE));
+        return Usd::ofNanos(intdiv($total, self::TOKENS_PER_RATE_UNIT));
     }
 
     /** @return array{input_text_tokens: string, input_image_tokens: string, output_tokens: string, reasoning_tokens: string} */

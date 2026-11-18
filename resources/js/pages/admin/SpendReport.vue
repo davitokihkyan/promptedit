@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { ChevronRight, CircleCheck, CircleX } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import Heading from '@/components/Heading.vue';
+import { formatExactUsd } from '@/lib/money';
 import admin from '@/routes/admin';
 import type { SpendReport } from '@/types';
 
@@ -55,7 +56,7 @@ const summary = computed(() => [
             >
                 <p class="text-sm text-muted-foreground">{{ card.label }}</p>
                 <p class="mt-1 font-mono text-lg font-semibold tabular-nums">
-                    ${{ card.value }}
+                    {{ formatExactUsd(card.value) }}
                 </p>
             </div>
             <div class="rounded-xl border p-4">
@@ -129,9 +130,15 @@ const summary = computed(() => [
                             </span>
                         </td>
                         <td class="p-3 text-right">{{ day.generations }}</td>
-                        <td class="p-3 text-right">${{ day.charged }}</td>
-                        <td class="p-3 text-right">${{ day.provider_cost }}</td>
-                        <td class="p-3 text-right">${{ day.profit }}</td>
+                        <td class="p-3 text-right">
+                            {{ formatExactUsd(day.charged) }}
+                        </td>
+                        <td class="p-3 text-right">
+                            {{ formatExactUsd(day.provider_cost) }}
+                        </td>
+                        <td class="p-3 text-right">
+                            {{ formatExactUsd(day.profit) }}
+                        </td>
                         <td class="p-3 font-sans">
                             <span v-if="!day.pixelforge">—</span>
                             <span
@@ -150,7 +157,7 @@ const summary = computed(() => [
                                     day.pixelforge.generations === 1
                                         ? 'image'
                                         : 'images'
-                                }}, ${{ day.pixelforge.cost }}
+                                }}, {{ formatExactUsd(day.pixelforge.cost) }}
                             </span>
                         </td>
                     </tr>
@@ -170,13 +177,13 @@ const summary = computed(() => [
                                 {{ user.generations }}
                             </td>
                             <td class="px-3 py-2 text-right">
-                                ${{ user.charged }}
+                                {{ formatExactUsd(user.charged) }}
                             </td>
                             <td class="px-3 py-2 text-right">
-                                ${{ user.provider_cost }}
+                                {{ formatExactUsd(user.provider_cost) }}
                             </td>
                             <td class="px-3 py-2 text-right">
-                                ${{ user.profit }}
+                                {{ formatExactUsd(user.profit) }}
                             </td>
                             <td></td>
                         </tr>

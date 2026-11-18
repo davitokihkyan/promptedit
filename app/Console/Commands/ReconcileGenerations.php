@@ -19,11 +19,8 @@ use Throwable;
 #[Description('Poll Pixelforge for generations whose webhooks never arrived')]
 final class ReconcileGenerations extends Command
 {
-    // Processing takes up to 30s, or 90s with [slow].
+    // Processing takes up to 30s, or 90s for prompts with Pixelforge's [slow] test keyword.
     private const int STALE_AFTER_MINUTES = 2;
-
-    // Matches SubmitGeneration::retryUntil().
-    private const int ABANDONED_AFTER_MINUTES = 30;
 
     // Stays well under Pixelforge's 60 requests per minute.
     private const int BATCH_SIZE = 10;
@@ -67,7 +64,7 @@ final class ReconcileGenerations extends Command
     {
         Generation::query()
             ->where('status', GenerationStatus::Pending)
-            ->where('updated_at', '<', now()->subMinutes(self::ABANDONED_AFTER_MINUTES))
+            ->where('updated_at', '<', now()->subMinutes(SubmitGeneration::RETRY_FOR_MINUTES))
             ->eachById(function (Generation $generation): void {
                 $generation->touch();
                 SubmitGeneration::dispatch($generation);

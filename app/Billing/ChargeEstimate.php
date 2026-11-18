@@ -6,9 +6,10 @@ use App\Money\Usd;
 use App\Pixelforge\Data\TokenUsage;
 
 /**
- * Up-front price for a generation; amounts include our markup.
+ * What a generation will charge the user, before it runs: the likely amount and the most it can be.
+ * Amounts include our markup.
  */
-final readonly class CostEstimate
+final readonly class ChargeEstimate
 {
     public function __construct(
         public TokenUsage $expectedUsage,

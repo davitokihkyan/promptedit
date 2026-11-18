@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Spinner } from '@/components/ui/spinner';
-import { formatUsd } from '@/lib/money';
-import type { CostEstimate, TokenUsage } from '@/types';
+import { formatExactUsd, formatUsd } from '@/lib/money';
+import type { ChargeEstimate, TokenUsage } from '@/types';
 
 defineProps<{
-    estimate: CostEstimate | null;
+    estimate: ChargeEstimate | null;
     loading: boolean;
     unavailable: boolean;
 }>();
 
 const rows: { label: string; key: keyof TokenUsage; note: string }[] = [
-    { label: 'Prompt text', key: 'input_text_tokens', note: '±15%' },
+    { label: 'Prompt text', key: 'input_text_tokens', note: 'estimated' },
     { label: 'Reference images', key: 'input_image_tokens', note: 'exact' },
     { label: 'Image output', key: 'output_tokens', note: 'exact' },
     { label: 'Reasoning', key: 'reasoning_tokens', note: 'varies' },
@@ -30,7 +30,7 @@ const rows: { label: string; key: keyof TokenUsage; note: string }[] = [
             <span
                 v-if="estimate"
                 class="text-2xl font-semibold tabular-nums"
-                :title="`$${estimate.expected}`"
+                :title="formatExactUsd(estimate.expected)"
             >
                 {{ formatUsd(estimate.expected) }}
             </span>
@@ -90,7 +90,7 @@ const rows: { label: string; key: keyof TokenUsage; note: string }[] = [
                     </tbody>
                 </table>
                 <p class="mt-2 text-muted-foreground">
-                    Priced at Pixelforge's current per-token rates plus 25%.
+                    Priced at Pixelforge's current per-token rates plus our fee.
                 </p>
             </details>
         </template>

@@ -11,7 +11,7 @@ enum GenerationStatus: string
     case Succeeded = 'succeeded';
     case Failed = 'failed';
 
-    public function isFinal(): bool
+    public function isFinished(): bool
     {
         return $this === self::Succeeded || $this === self::Failed;
     }
@@ -19,13 +19,13 @@ enum GenerationStatus: string
     /** Status only moves forward, which makes duplicate and late updates harmless. */
     public function canMoveTo(self $next): bool
     {
-        return ! $this->isFinal() && $next->rank() > $this->rank();
+        return ! $this->isFinished() && $next->rank() > $this->rank();
     }
 
     /** @return list<self> */
     public static function unfinished(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $status) => ! $status->isFinal()));
+        return [self::Pending, self::Queued, self::Processing];
     }
 
     /** @return list<self> */

@@ -17,7 +17,7 @@ class PricingCatalogTest extends TestCase
     {
         $catalog = PricingCatalog::fromArray(Pixelforge::pricing());
 
-        $usage = $catalog->maximumUsage($this->docsExample());
+        $usage = $catalog->maximumUsage(Pixelforge::docsExampleParameters());
 
         $this->assertEquals(new TokenUsage(inputText: 115, inputImage: 1530, output: 6450, reasoning: 8000), $usage);
         $this->assertSame('0.373875000', $catalog->rates->costOf($usage)->toDecimal());
@@ -25,7 +25,7 @@ class PricingCatalogTest extends TestCase
 
     public function test_expected_usage_takes_text_at_face_value_and_reasoning_mid_range(): void
     {
-        $usage = PricingCatalog::fromArray(Pixelforge::pricing())->expectedUsage($this->docsExample());
+        $usage = PricingCatalog::fromArray(Pixelforge::pricing())->expectedUsage(Pixelforge::docsExampleParameters());
 
         $this->assertEquals(new TokenUsage(inputText: 100, inputImage: 1530, output: 6450, reasoning: 4500), $usage);
     }
@@ -45,15 +45,5 @@ class PricingCatalogTest extends TestCase
         $usage = new TokenUsage(inputText: 41, inputImage: 0, output: 3300, reasoning: 2950);
 
         $this->assertSame('0.169080000', TokenRates::fromArray(Pixelforge::RATES)->costOf($usage)->toDecimal());
-    }
-
-    private function docsExample(): GenerationParameters
-    {
-        return new GenerationParameters(
-            prompt: str_repeat('a', 400),
-            size: ImageSize::Landscape,
-            quality: ImageQuality::High,
-            referenceImages: ['https://example.com/a.png', 'https://example.com/b.png'],
-        );
     }
 }

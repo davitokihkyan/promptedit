@@ -27,6 +27,7 @@ return new class extends Migration
             $table->bigInteger('provider_cost')->nullable();
             $table->bigInteger('charge')->nullable();
 
+            // What Pixelforge billed for, so every charge can be audited and recomputed.
             $table->json('rates')->nullable();
             $table->unsignedInteger('input_text_tokens')->nullable();
             $table->unsignedInteger('input_image_tokens')->nullable();
@@ -37,7 +38,7 @@ return new class extends Migration
             $table->timestamp('image_url_expires_at')->nullable();
             $table->string('error_code')->nullable();
             $table->text('error_message')->nullable();
-            $table->unsignedSmallInteger('submit_attempts')->default(0);
+            $table->unsignedSmallInteger('submit_attempts')->default(0); // failed submissions, drives the backoff
             $table->timestamp('completed_at')->nullable()->index();
             $table->timestamps();
 

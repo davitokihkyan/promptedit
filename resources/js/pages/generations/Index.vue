@@ -13,6 +13,8 @@ const props = defineProps<{
     generations: Generation[];
     sizes: ImageSize[];
     qualities: ImageQuality[];
+    maxPromptLength: number;
+    maxReferenceImages: number;
 }>();
 
 defineOptions({
@@ -48,7 +50,12 @@ watch(hasUnfinished, (unfinished) => (unfinished ? start() : stop()), {
                 title="New image"
                 description="Describe what you want; you'll see the price before you generate."
             />
-            <GenerationForm :sizes="sizes" :qualities="qualities" />
+            <GenerationForm
+                :sizes="sizes"
+                :qualities="qualities"
+                :max-prompt-length="maxPromptLength"
+                :max-reference-images="maxReferenceImages"
+            />
         </section>
 
         <section class="@container">

@@ -4,23 +4,41 @@ import { Plus, X } from '@lucide/vue';
 import { computed } from 'vue';
 import GenerationController from '@/actions/App/Http/Controllers/GenerationController';
 import BuyCreditsDialog from '@/components/credits/BuyCreditsDialog.vue';
+import OptionPicker from '@/components/generations/OptionPicker.vue';
 import PriceEstimate from '@/components/generations/PriceEstimate.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { useCostEstimate } from '@/composables/useCostEstimate';
+import { useChargeEstimate } from '@/composables/useChargeEstimate';
 import { qualityLabels, sizeLabels } from '@/lib/generation';
 import { formatUsd, toNanos } from '@/lib/money';
-import { cn } from '@/lib/utils';
 import type { GenerationRequest, ImageQuality, ImageSize } from '@/types';
 
-defineProps<{ sizes: ImageSize[]; qualities: ImageQuality[] }>();
+const props = defineProps<{
+    sizes: ImageSize[];
+    qualities: ImageQuality[];
+    maxPromptLength: number;
+    maxReferenceImages: number;
+}>();
 
-const MAX_PROMPT_LENGTH = 4000;
-const MAX_REFERENCE_IMAGES = 4;
 const REFERENCE_PLACEHOLDER = 'https://example.com/style.png';
+
+const sizeOptions = computed(() =>
+    props.sizes.map((size) => ({
+        value: size,
+        label: sizeLabels[size],
+        hint: size.replace('x', '×'),
+    })),
+);
+
+const qualityOptions = computed(() =>
+    props.qualities.map((quality) => ({
+        value: quality,
+        label: qualityLabels[quality],
+    })),
+);
 
 const form = useForm<GenerationRequest>({
     prompt: '',
@@ -39,12 +57,13 @@ const request = computed<GenerationRequest>(() => ({
     reference_images: filledReferences(),
 }));
 
-const { estimate, unavailable, loading } = useCostEstimate(request);
+const { estimate, unavailable, loading } = useChargeEstimate(request);
 
 const page = usePage();
-const balance = computed(() => page.props.credits?.balance ?? '0');
+const balance = computed(() => page.props.credits?.balance ?? '0.000000000');
 
 // Generating holds the maximum price, so that's what the balance must cover.
+// Without an estimate yet, the server makes the call.
 const canAfford = computed(
     () =>
         estimate.value === null ||
@@ -76,20 +95,12 @@ function submit(): void {
         return;
     }
 
+    // Drop empty rows first, so "reference_images.N" errors point at the rows the user sees.
     form.reference_images = filledReferences();
     form.submit(GenerationController.store(), {
         preserveScroll: true,
         onSuccess: () => form.reset('prompt', 'reference_images'),
     });
-}
-
-function optionClasses(selected: boolean): string {
-    return cn(
-        'flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors',
-        selected
-            ? 'border-primary bg-primary text-primary-foreground'
-            : 'hover:bg-accent',
-    );
 }
 </script>
 
@@ -101,13 +112,13 @@ function optionClasses(selected: boolean): string {
                 <span
                     class="text-xs tabular-nums"
                     :class="
-                        promptLength > MAX_PROMPT_LENGTH
+                        promptLength > maxPromptLength
                             ? 'text-destructive'
                             : 'text-muted-foreground'
                     "
                 >
                     {{ promptLength.toLocaleString() }} /
-                    {{ MAX_PROMPT_LENGTH.toLocaleString() }}
+                    {{ maxPromptLength.toLocaleString() }}
                 </span>
             </div>
             <textarea
@@ -124,44 +135,19 @@ function optionClasses(selected: boolean): string {
             <InputError :message="form.errors.prompt" />
         </div>
 
-        <fieldset class="grid gap-2">
-            <legend class="mb-2 text-sm font-medium">Size</legend>
-            <div class="flex gap-2">
-                <button
-                    v-for="size in sizes"
-                    :key="size"
-                    type="button"
-                    :aria-pressed="form.size === size"
-                    :class="optionClasses(form.size === size)"
-                    @click="form.size = size"
-                >
-                    <span class="block font-medium">{{
-                        sizeLabels[size]
-                    }}</span>
-                    <span class="block text-xs opacity-75">{{
-                        size.replace('x', '×')
-                    }}</span>
-                </button>
-            </div>
-            <InputError :message="form.errors.size" />
-        </fieldset>
+        <OptionPicker
+            v-model="form.size"
+            legend="Size"
+            :options="sizeOptions"
+            :error="form.errors.size"
+        />
 
-        <fieldset class="grid gap-2">
-            <legend class="mb-2 text-sm font-medium">Quality</legend>
-            <div class="flex gap-2">
-                <button
-                    v-for="quality in qualities"
-                    :key="quality"
-                    type="button"
-                    :aria-pressed="form.quality === quality"
-                    :class="optionClasses(form.quality === quality)"
-                    @click="form.quality = quality"
-                >
-                    {{ qualityLabels[quality] }}
-                </button>
-            </div>
-            <InputError :message="form.errors.quality" />
-        </fieldset>
+        <OptionPicker
+            v-model="form.quality"
+            legend="Quality"
+            :options="qualityOptions"
+            :error="form.errors.quality"
+        />
 
         <fieldset class="grid gap-2">
             <legend class="text-sm font-medium">
@@ -171,7 +157,7 @@ function optionClasses(selected: boolean): string {
                 >
             </legend>
             <p class="text-xs text-muted-foreground">
-                Image URLs that guide the style. Each one adds 765 input tokens.
+                Image URLs that guide the style. Each one adds to the price.
             </p>
             <div
                 v-for="(url, index) in form.reference_images"
@@ -197,7 +183,7 @@ function optionClasses(selected: boolean): string {
                 <InputError :message="errorFor(`reference_images.${index}`)" />
             </div>
             <Button
-                v-if="form.reference_images.length < MAX_REFERENCE_IMAGES"
+                v-if="form.reference_images.length < maxReferenceImages"
                 type="button"
                 variant="outline"
                 size="sm"

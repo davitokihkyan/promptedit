@@ -5,7 +5,7 @@ namespace App\Billing;
 use App\Money\Usd;
 use RuntimeException;
 
-final class InsufficientCredits extends RuntimeException
+final class InsufficientCreditsException extends RuntimeException
 {
     public function __construct(public readonly Usd $needed, public readonly Usd $available)
     {

@@ -16,22 +16,23 @@ final readonly class Wallet
     /**
      * Call inside a transaction; the row lock stops parallel requests overspending.
      *
-     * @throws InsufficientCredits
+     * @throws InsufficientCreditsException
      */
     public function hold(User $user, Usd $amount): void
     {
         $balance = User::query()->lockForUpdate()->findOrFail($user->id)->balance;
 
         if ($balance->isLessThan($amount)) {
-            throw new InsufficientCredits($amount, $balance);
+            throw new InsufficientCreditsException($amount, $balance);
         }
 
-        $this->adjust($user->id, Usd::zero()->minus($amount));
+        $this->adjust($user->id, $amount->negated());
     }
 
-    /** Returns the hold minus the actual charge; a failed generation gets it all back. */
+    /** Refunds the hold minus the actual charge; a failed generation gets it all back. */
     public function settle(Generation $generation): void
     {
+        // The user deleted their account, so there's no balance left to refund.
         if ($generation->user_id === null) {
             return;
         }
@@ -39,7 +40,6 @@ final readonly class Wallet
         $this->adjust($generation->user_id, $generation->max_charge->minus($generation->charge ?? Usd::zero()));
     }
 
-    /** A fake checkout: no payment is taken. */
     public function deposit(User $user, Usd $amount): void
     {
         DB::transaction(function () use ($user, $amount): void {
@@ -48,8 +48,8 @@ final readonly class Wallet
         });
     }
 
-    /** Held by generations that haven't finished yet. */
-    public function reserved(User $user): Usd
+    /** What the user's unfinished generations are holding. */
+    public function held(User $user): Usd
     {
         $nanos = $user->generations()
             ->whereIn('status', GenerationStatus::unfinished())

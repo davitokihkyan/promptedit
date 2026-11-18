@@ -49,7 +49,7 @@ class SubmitGenerationTest extends TestCase
 
     public function test_it_gives_up_after_a_few_retryable_rejections_and_charges_nothing(): void
     {
-        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_ATTEMPTS - 1]);
+        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_FAILED_ATTEMPTS - 1]);
         Http::fake(['*' => $this->error('overloaded', 503, retryAfter: 2)]);
 
         $this->runJob($generation)->assertNotReleased();
@@ -82,7 +82,7 @@ class SubmitGenerationTest extends TestCase
 
     public function test_a_timeout_is_never_treated_as_a_failure(): void
     {
-        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_ATTEMPTS + 5]);
+        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_FAILED_ATTEMPTS + 5]);
         Http::fake(['*' => Http::failedConnection()]);
 
         $this->runJob($generation)->assertReleased();
@@ -92,7 +92,7 @@ class SubmitGenerationTest extends TestCase
 
     public function test_an_unexpected_server_error_is_retried_rather_than_failed(): void
     {
-        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_ATTEMPTS + 5]);
+        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_FAILED_ATTEMPTS + 5]);
         Http::fake(['*' => Http::response('Bad gateway', 502)]);
 
         $this->runJob($generation)->assertReleased();
@@ -113,14 +113,14 @@ class SubmitGenerationTest extends TestCase
 
     public function test_a_concurrency_limit_waits_without_using_up_attempts(): void
     {
-        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_ATTEMPTS - 1]);
+        $generation = Generation::factory()->create(['submit_attempts' => SubmitGeneration::MAX_FAILED_ATTEMPTS - 1]);
         Http::fake(['*' => $this->error('concurrency_limit_exceeded', 429, retryAfter: 5)]);
 
         $this->runJob($generation)->assertReleased(delay: 5);
 
         $generation->refresh();
         $this->assertSame(GenerationStatus::Pending, $generation->status);
-        $this->assertSame(SubmitGeneration::MAX_ATTEMPTS - 1, $generation->submit_attempts);
+        $this->assertSame(SubmitGeneration::MAX_FAILED_ATTEMPTS - 1, $generation->submit_attempts);
     }
 
     public function test_a_reused_idempotency_key_is_never_marked_free(): void

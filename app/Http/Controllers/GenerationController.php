@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Billing\InsufficientCredits;
+use App\Billing\InsufficientCreditsException;
 use App\Enums\ImageQuality;
 use App\Enums\ImageSize;
 use App\Generations\StartGeneration;
@@ -30,8 +30,11 @@ final class GenerationController extends Controller
             'generations' => GenerationResource::collection(
                 $user->generations()->latest()->limit(self::HISTORY_SIZE)->get(),
             )->resolve(),
+            // The form's options and limits come from the same enums and rules that validate it.
             'sizes' => array_column(ImageSize::cases(), 'value'),
             'qualities' => array_column(ImageQuality::cases(), 'value'),
+            'maxPromptLength' => StoreGenerationRequest::MAX_PROMPT_LENGTH,
+            'maxReferenceImages' => StoreGenerationRequest::MAX_REFERENCE_IMAGES,
         ]);
     }
 
@@ -42,7 +45,7 @@ final class GenerationController extends Controller
 
         try {
             $start->handle($user, $request->parameters());
-        } catch (InsufficientCredits) {
+        } catch (InsufficientCreditsException) {
             throw ValidationException::withMessages([
                 'credits' => 'Not enough credits: this generation can cost up to the maximum shown. Buy credits to continue.',
             ]);

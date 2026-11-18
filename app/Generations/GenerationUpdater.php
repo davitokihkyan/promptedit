@@ -29,8 +29,8 @@ final readonly class GenerationUpdater
             'pixelforge_id' => $remote->id,
             'rates' => $remote->rates->toArray(),
             ...match ($remote->status) {
-                GenerationStatus::Succeeded => $this->succeeded($remote),
-                GenerationStatus::Failed => $this->free($remote->errorCode, $remote->errorMessage, $remote->completedAt),
+                GenerationStatus::Succeeded => $this->successAttributes($remote),
+                GenerationStatus::Failed => $this->failureAttributes($remote->errorCode, $remote->errorMessage, $remote->completedAt),
                 default => [],
             },
         ]);
@@ -39,11 +39,11 @@ final readonly class GenerationUpdater
     /** Pixelforge refused the request, so nothing was created and nothing is owed. */
     public function reject(Generation $generation, string $errorCode, string $errorMessage): bool
     {
-        return $this->moveTo($generation, GenerationStatus::Failed, $this->free($errorCode, $errorMessage, now()));
+        return $this->moveTo($generation, GenerationStatus::Failed, $this->failureAttributes($errorCode, $errorMessage, now()));
     }
 
     /** @return array<string, mixed> */
-    private function succeeded(RemoteGeneration $remote): array
+    private function successAttributes(RemoteGeneration $remote): array
     {
         $usage = $remote->usage ?? throw new UnexpectedValueException("Generation [{$remote->id}] succeeded without usage.");
         // Billed at the rates fixed when Pixelforge created it, not today's.
@@ -59,8 +59,12 @@ final readonly class GenerationUpdater
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function free(?string $errorCode, ?string $errorMessage, ?CarbonInterface $completedAt): array
+    /**
+     * A failure costs nothing, for us or the user.
+     *
+     * @return array<string, mixed>
+     */
+    private function failureAttributes(?string $errorCode, ?string $errorMessage, ?CarbonInterface $completedAt): array
     {
         return [
             'provider_cost' => Usd::zero(),
@@ -85,13 +89,14 @@ final readonly class GenerationUpdater
             $current->fill([...$attributes, 'status' => $status])->save();
 
             // Runs once per generation: only the first move to a final status gets here.
-            if ($status->isFinal()) {
+            if ($status->isFinished()) {
                 $this->wallet->settle($current);
             }
 
             return true;
         });
 
+        // So the caller's model shows what was saved.
         $generation->refresh();
 
         return $moved;

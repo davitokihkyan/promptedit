@@ -20,8 +20,11 @@ final class SubmitGeneration implements ShouldQueue
 {
     use Queueable;
 
-    /** Retryable rejections (rate limit, overload) before we give up. */
-    public const int MAX_ATTEMPTS = 6;
+    /** Failed submissions (rate limit, overload) before the generation fails, for free. */
+    public const int MAX_FAILED_ATTEMPTS = 6;
+
+    /** After this, the reconcile command resubmits anything still pending. */
+    public const int RETRY_FOR_MINUTES = 30;
 
     private const int SLOT_WAIT_SECONDS = 5;
 
@@ -39,10 +42,9 @@ final class SubmitGeneration implements ShouldQueue
         return [(new WithoutOverlapping('pixelforge'))->releaseAfter(1)->expireAfter(30)];
     }
 
-    /** Anything still pending after this is retried by the reconcile command. */
     public function retryUntil(): DateTimeInterface
     {
-        return now()->addMinutes(30);
+        return now()->addMinutes(self::RETRY_FOR_MINUTES);
     }
 
     public function handle(PixelforgeClient $pixelforge, GenerationUpdater $updater): void
@@ -60,14 +62,11 @@ final class SubmitGeneration implements ShouldQueue
             return;
         }
 
-        $generation->increment('submit_attempts');
-
         try {
-            $remote = $pixelforge->createGeneration($generation->parameters(), $generation->id, [
-                'generation_id' => $generation->id,
-            ]);
+            $remote = $pixelforge->createGeneration($generation->parameters(), $generation->id);
         } catch (ConnectionException) {
-            // It may have been created; the same Idempotency-Key makes the retry safe.
+            // It may have been created; resending with the same Idempotency-Key is safe.
+            $generation->increment('submit_attempts');
             $this->retryLater();
 
             return;
@@ -84,7 +83,6 @@ final class SubmitGeneration implements ShouldQueue
     {
         // Slots are shared with the account's other environments; waiting isn't a failed attempt.
         if ($exception->isConcurrencyLimit()) {
-            $this->generation->decrement('submit_attempts');
             $this->release($exception->retryAfter ?? self::SLOT_WAIT_SECONDS);
 
             return;
@@ -97,8 +95,10 @@ final class SubmitGeneration implements ShouldQueue
             return;
         }
 
+        $this->generation->increment('submit_attempts');
+
         $canRetry = $exception->outcomeIsUnknown()
-            || ($exception->isRetryable() && $this->generation->submit_attempts < self::MAX_ATTEMPTS);
+            || ($exception->isRetryable() && $this->generation->submit_attempts < self::MAX_FAILED_ATTEMPTS);
 
         if ($canRetry) {
             $this->retryLater($exception->retryAfter);

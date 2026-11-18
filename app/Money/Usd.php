@@ -35,7 +35,7 @@ final readonly class Usd implements JsonSerializable, Stringable
     /** Parses an exact decimal string such as "0.046125000" or "12.50". */
     public static function fromDecimal(string $amount): self
     {
-        if (! preg_match('/^(-?)(\d+)(?:\.(\d{1,9}))?$/', $amount, $matches)) {
+        if (! preg_match('/^(-?)(\d+)(?:\.(\d{1,'.self::SCALE.'}))?$/', $amount, $matches)) {
             throw new InvalidArgumentException("[{$amount}] is not an exact USD amount.");
         }
 
@@ -55,6 +55,16 @@ final readonly class Usd implements JsonSerializable, Stringable
         return new self($this->nanos - $other->nanos);
     }
 
+    public function negated(): self
+    {
+        return new self(-$this->nanos);
+    }
+
+    public function equals(self $other): bool
+    {
+        return $this->nanos === $other->nanos;
+    }
+
     public function isLessThan(self $other): bool
     {
         return $this->nanos < $other->nanos;
@@ -71,7 +81,7 @@ final readonly class Usd implements JsonSerializable, Stringable
         $absolute = abs($this->nanos);
 
         return sprintf(
-            '%s%d.%09d',
+            '%s%d.%0'.self::SCALE.'d',
             $this->nanos < 0 ? '-' : '',
             intdiv($absolute, self::NANOS_PER_DOLLAR),
             $absolute % self::NANOS_PER_DOLLAR,

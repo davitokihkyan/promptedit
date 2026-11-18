@@ -18,11 +18,11 @@ final readonly class HttpPixelforgeClient implements PixelforgeClient
         private string $apiKey,
     ) {}
 
-    public function createGeneration(GenerationParameters $parameters, string $idempotencyKey, array $metadata): RemoteGeneration
+    public function createGeneration(GenerationParameters $parameters, string $generationId): RemoteGeneration
     {
         $response = $this->request()
-            ->withHeader('Idempotency-Key', $idempotencyKey)
-            ->post('generations', [...$parameters->toArray(), 'metadata' => $metadata]);
+            ->withHeader('Idempotency-Key', $generationId)
+            ->post('generations', [...$parameters->toArray(), 'metadata' => ['generation_id' => $generationId]]);
 
         return RemoteGeneration::fromArray($this->decode($response));
     }

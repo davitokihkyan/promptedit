@@ -52,7 +52,7 @@ final readonly class HandleWebhookEvent
         return WebhookEvent::query()->insertOrIgnore([
             'id' => $event['id'],
             'type' => $event['type'],
-            'payload' => json_encode($event),
+            'payload' => json_encode($event), // insertOrIgnore skips model casts
             'received_at' => now(),
         ]) === 1;
     }

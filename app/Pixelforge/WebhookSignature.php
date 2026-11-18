@@ -16,11 +16,16 @@ final readonly class WebhookSignature
 
     public function verify(string $payload, string $header): bool
     {
+        // Without a configured secret nothing can be verified, so nothing is trusted.
+        if ($this->secret === '') {
+            return false;
+        }
+
         $parts = $this->parse($header);
         $timestamp = (int) ($parts['t'] ?? 0);
 
         // An old timestamp may be a replayed request.
-        if ($this->secret === '' || abs(Date::now()->getTimestamp() - $timestamp) > $this->toleranceSeconds) {
+        if (abs(Date::now()->getTimestamp() - $timestamp) > $this->toleranceSeconds) {
             return false;
         }
 

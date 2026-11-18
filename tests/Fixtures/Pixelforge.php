@@ -2,6 +2,10 @@
 
 namespace Tests\Fixtures;
 
+use App\Enums\ImageQuality;
+use App\Enums\ImageSize;
+use App\Pixelforge\Data\GenerationParameters;
+
 /**
  * Pixelforge payloads copied from the API docs.
  */
@@ -13,6 +17,34 @@ final class Pixelforge
         'output_tokens' => '40.00',
         'reasoning_tokens' => '12.50',
     ];
+
+    /**
+     * The docs' worked example: a 400-character prompt, 2 reference images, high quality, 1536x1024.
+     * At most it costs 0.373875000, so the user is charged at most 0.467343750.
+     *
+     * @return array{prompt: string, size: string, quality: string, reference_images: list<string>}
+     */
+    public static function docsExampleRequest(): array
+    {
+        return [
+            'prompt' => str_repeat('a', 400),
+            'size' => '1536x1024',
+            'quality' => 'high',
+            'reference_images' => ['https://example.com/a.png', 'https://example.com/b.png'],
+        ];
+    }
+
+    public static function docsExampleParameters(): GenerationParameters
+    {
+        $request = self::docsExampleRequest();
+
+        return new GenerationParameters(
+            $request['prompt'],
+            ImageSize::from($request['size']),
+            ImageQuality::from($request['quality']),
+            $request['reference_images'],
+        );
+    }
 
     /** @return array<string, mixed> */
     public static function pricing(): array

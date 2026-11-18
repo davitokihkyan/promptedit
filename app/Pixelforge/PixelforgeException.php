@@ -15,10 +15,10 @@ final class PixelforgeException extends RuntimeException
     public function __construct(
         string $message,
         public readonly string $errorCode,
-        public readonly int $status,
+        public readonly int $httpStatus,
         public readonly ?int $retryAfter = null,
     ) {
-        parent::__construct($message, $status);
+        parent::__construct($message, $httpStatus);
     }
 
     public static function fromResponse(Response $response): self
@@ -28,7 +28,7 @@ final class PixelforgeException extends RuntimeException
         return new self(
             message: $response->json('error.message') ?? "Pixelforge responded with HTTP {$response->status()}.",
             errorCode: $response->json('error.code') ?? 'http_'.$response->status(),
-            status: $response->status(),
+            httpStatus: $response->status(),
             retryAfter: is_numeric($retryAfter) ? (int) $retryAfter : null,
         );
     }
@@ -53,6 +53,6 @@ final class PixelforgeException extends RuntimeException
     /** Documented errors promise nothing was created; an unexpected server error doesn't. */
     public function outcomeIsUnknown(): bool
     {
-        return $this->status >= 500 && ! $this->isRetryable();
+        return $this->httpStatus >= 500 && ! $this->isRetryable();
     }
 }
